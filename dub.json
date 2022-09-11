@@ -1,0 +1,26 @@
+{
+	"authors": [
+		"Adrian Bleier"
+	],
+	"copyright": "Copyright © 2022, Adrian Bleier",
+	"description": "Implementation of the tree walk interpreter from \"Crafting Interpreters\" in D",
+	"license": "MIT",
+	"targetType": "none",
+	"name" : "tree_walk_interpreter",
+	"configurations": [
+		{
+			"name": "Interpreter",
+			"targetType": "executable",
+			"mainSourceFile": "source/app.d",
+			"excludedSourceFiles": [ "source/tool.d"],
+			"targetName": "interpreter"
+		},
+		{
+			"name": "ASTGenerator",
+			"targetType": "executable",
+			"mainSourceFile": "source/tool.d",
+			"excludedSourceFiles": [ "source/app.d", "source/interpreter/*" ],
+			"targetName": "ast_gen"
+		}
+	]
+}
