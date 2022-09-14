@@ -1,15 +1,20 @@
 module source.lox;
 //TODO Next Scanning - Operators
 import std.stdio;
+import std.conv;
 import core.stdc.stdlib;
 
 import source.interpreter.scanner;
 import source.interpreter.astprinter;
+import source.interpreter.parser;
+import source.interpreter.expr;
+import source.interpreter.interpreter;
+import source.interpreter.stmt;
 
 bool hadError = false;
+bool hadRuntimeError = false;
 int main(string[] args)
 {
-	printTest();
 	if (args.length > 2)
 	{
 		writeln("Usage: dlox [script]");
@@ -29,6 +34,7 @@ int main(string[] args)
 
 void runFile(string path)
 {
+	Interpreter interpreter = new Interpreter();
 	File file = File(path, "r");
 	string line, src;
 	while ((line = file.readln()) != null)
@@ -36,35 +42,62 @@ void runFile(string path)
 		src ~= line;
 	}
 	file.close();
-	run(src);
-	if(hadError) exit(65);
+	run(interpreter, src);
+	if (hadError)
+		exit(65);
+	if (hadRuntimeError)
+		exit(70);
 }
 
 void runPrompt()
 {
+	Interpreter interpreter = new Interpreter();
 	while (true)
 	{
 		write(">");
 		string line = readln();
 		if (line == null)
 			break;
-		run(line);
+		run(interpreter, line);
 		hadError = false;
 	}
 }
 
-void run(string source)
+void run(Interpreter interpreter, string source)
 {
 	auto scanner = new Scanner(source);
 	auto tokens = scanner.scanTokens();
 
-	foreach(token ; tokens)
+	Parser parser = new Parser(tokens);
+	Stmt[] statements = parser.parse();
+
+	// Stop if there was a syntax error.
+	if (hadError)
+		return;
+	// writeln(new AstPrinter().print(expression));
+	interpreter.interpret(statements);
+}
+
+void reportRuntimeError(RuntimeError error)
+{
+	writeln(error.msg ~
+			"\n[line " ~ to!string(error.token.line) ~ "]");
+	hadRuntimeError = true;
+}
+
+void reportError(Token token, string message)
+{
+	if (token.type == TokenType.EOF)
 	{
-		writeln(token);
+		report(token.line, " at end", message);
+	}
+	else
+	{
+		report(token.line, " at '" ~ token.lexeme ~ "'", message);
 	}
 }
 
-void error(int line, string message)
+void reportError(int line, string message)
 {
 	report(line, "", message);
 }
@@ -73,6 +106,6 @@ void report(int line, string where,
 	string message)
 {
 	writeln(
-		"[line " , line , "] Error" , where , ": " , message);
+		"[line ", line, "] Error", where, ": ", message);
 	hadError = true;
 }

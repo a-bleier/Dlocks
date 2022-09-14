@@ -1,34 +1,35 @@
 module source.interpreter.expr;
 import source.interpreter.scanner;
+import source.interpreter.parser;
+import std.variant;
 
 class Expr
 {
-	abstract VisitorResult accept(Visitor visitor);
+	abstract Variant accept(Visitor visitor);
 }
 interface Visitor 
 {
-	VisitorResult visitBinaryExpr(Binary expr);
-	VisitorResult visitGroupingExpr(Grouping expr);
-	VisitorResult visitLiteralExpr(Literal expr);
-	VisitorResult visitUnaryExpr(Unary expr);
+	Variant visitAssignExpr(Assign expr);
+	Variant visitBinaryExpr(Binary expr);
+	Variant visitGroupingExpr(Grouping expr);
+	Variant visitLiteralExpr(Literal expr);
+	Variant visitUnaryExpr(Unary expr);
+	Variant visitVariableExpr(Variable expr);
 }
-union VisitorResult
+class Assign : Expr
 {
-    string sRes;
-    int iRes;
-	Value value;
-
-    this(string sRes)
-    {
-        this.sRes = sRes;
-    }
-    this(int iRes)
-    {
-        this.iRes = iRes;
-    }
-	this(Value value)
+	this(Token name, Expr value)
 	{
+		this.name = name;
 		this.value = value;
+	}
+
+	Token name;
+	Expr value;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitAssignExpr(this);
 	}
 }
 class Binary : Expr
@@ -44,7 +45,7 @@ class Binary : Expr
 	Token operator;
 	Expr right;
 
-	override VisitorResult accept(Visitor visitor)
+	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitBinaryExpr(this);
 	}
@@ -58,21 +59,21 @@ class Grouping : Expr
 
 	Expr expression;
 
-	override VisitorResult accept(Visitor visitor)
+	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitGroupingExpr(this);
 	}
 }
 class Literal : Expr
 {
-	this(Value value)
+	this(Variant value)
 	{
 		this.value = value;
 	}
 
-	Value value;
+	Variant value;
 
-	override VisitorResult accept(Visitor visitor)
+	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitLiteralExpr(this);
 	}
@@ -88,8 +89,22 @@ class Unary : Expr
 	Token operator;
 	Expr right;
 
-	override VisitorResult accept(Visitor visitor)
+	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitUnaryExpr(this);
+	}
+}
+class Variable : Expr
+{
+	this(Token name)
+	{
+		this.name = name;
+	}
+
+	Token name;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitVariableExpr(this);
 	}
 }

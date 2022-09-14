@@ -5,7 +5,6 @@ import std.string;
 import std.uni;
 import core.stdc.stdlib;
 
-
 void main(string[] args)
 {
 	if (args.length != 2)
@@ -14,30 +13,45 @@ void main(string[] args)
 		exit(64);
 	}
 	string outputDir = args[1];
-	defineAst(outputDir, "Expr", [
+	defineAst(outputDir, "Expr",
+		[
+			"Assign   : Token name, Expr value",
 			"Binary : Expr left, Token operator, Expr right",
 			"Grouping : Expr expression",
-			"Literal : Value value",
-			"Unary : Token operator, Expr right"
-	]);
+			"Literal : Variant value",
+			"Unary : Token operator, Expr right",
+			"Variable : Token name"
+		],[]);
+	defineAst(outputDir, "Stmt",
+		[
+			"Block      : Stmt[] statements",
+			"Expression : Expr expression",
+			"Print      : Expr expression",
+			"Var : Token name, Expr initializer"
+		],["import source.interpreter.expr;"]);
 }
 
-void defineAst(string outputDir, string baseName, string[] types)
+void defineAst(string outputDir, string baseName, string[] types, string[] imports)
 {
 	string path = outputDir ~ "/" ~ baseName.toLower() ~ ".d";
 	File file = File(path, "w");
 	file.writeln("module source.interpreter." ~ baseName.toLower() ~ ";");
 	file.writeln("import source.interpreter.scanner;");
+	file.writeln("import source.interpreter.parser;");
+	file.writeln("import std.variant;");
+
+	foreach(imp ; imports)
+	{
+		file.writeln(imp);
+	}
 
 	file.writeln("");
 	file.writefln("class %s\n{", baseName);
 	//TODO Write stuff here
-	file.writeln("\tabstract VisitorResult accept(Visitor visitor);");
+	file.writeln("\tabstract Variant accept(Visitor visitor);");
 	file.writeln("}");
 
 	defineVisitor(file, baseName, types);
-
-    defineVisitorResult(file);
 
 	//define type classes
 	foreach (type; types)
@@ -45,35 +59,17 @@ void defineAst(string outputDir, string baseName, string[] types)
 		string className = type.split(":")[0].strip(" ");
 		string fields = type.split(": ")[1].strip(" ");
 		defineType(file, baseName, className, fields);
-        }
+	}
 	file.close();
-}
-
-void defineVisitorResult(File file)
-{
-	file.writeln(r"union VisitorResult
-{
-    string sRes;
-    int iRes;
-
-    this(string sRes)
-    {
-        this.sRes = sRes;
-    }
-    this(int iRes)
-    {
-        this.iRes = iRes;
-    }
-}");
 }
 
 void defineVisitor(File file, string baseName, string[] types)
 {
 	file.writefln("interface Visitor \n{");
-	foreach(type ; types)
+	foreach (type; types)
 	{
 		auto typeName = type.split(":")[0].strip(" ");
-		file.writefln("\tVisitorResult visit%s%s(%s %s);", typeName, baseName, typeName, baseName.toLower());
+		file.writefln("\tVariant visit%s%s(%s %s);", typeName, baseName, typeName, baseName.toLower());
 	}
 
 	file.writeln("}");
@@ -106,7 +102,7 @@ void defineType(File file, string baseName, string className, string fieldList)
 
 	//visitor pattern impl
 	file.writeln();
-	file.writeln("\toverride VisitorResult accept(Visitor visitor)\n\t{");
+	file.writeln("\toverride Variant accept(Visitor visitor)\n\t{");
 	file.writefln("\t\treturn visitor.visit%s%s(this);", className, baseName);
 	file.writeln("\t}");
 	file.writeln("}");

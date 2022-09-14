@@ -4,6 +4,7 @@ import source.lox;
 import std.stdio;
 import std.format;
 import std.conv;
+import std.variant;
 
 enum TokenType
 {
@@ -19,6 +20,8 @@ enum TokenType
 	SEMICOLON,
 	SLASH,
 	STAR,
+	QUESTION_MARK,
+	COLON,
 
 	// One or two character tokens.
 	BANG,
@@ -56,36 +59,14 @@ enum TokenType
 	EOF
 }
 
-union Value
-{
-	string sVal;
-	int iVal;
-	double dVal;
-
-	this(string s)
-	{
-		this.sVal = s;
-	}
-
-	this(int i)
-	{
-		this.iVal = i;
-	}
-
-	this(double d)
-	{
-		this.dVal = d;
-	}
-}
-
 class Token
 {
 	TokenType type;
 	string lexeme;
-	Value literal;
+	Variant literal;
 	int line;
 
-	this(TokenType type, string lexeme, Value literal, int line)
+	this(TokenType type, string lexeme, Variant literal, int line)
 	{
 		this.type = type;
 		this.lexeme = lexeme;
@@ -140,7 +121,7 @@ class Scanner
 			scanToken();
 		}
 
-		tokens ~= new Token(TokenType.EOF, "", Value(""), line);
+		tokens ~= new Token(TokenType.EOF, "", Variant(), line);
 		return this.tokens;
 	}
 
@@ -151,10 +132,10 @@ class Scanner
 
 	private void addToken(TokenType type) //Produces a token of type type
 	{
-		this.addToken(type, Value(""));
+		this.addToken(type, Variant());
 	}
 
-	private void addToken(TokenType type, Value literal) //Produces a token of type type and value literal
+	private void addToken(TokenType type, Variant literal) //Produces a token of type type and value literal
 	{
 		tokens ~= new Token(type, this.source[start .. current], literal, line);
 	}
@@ -211,6 +192,12 @@ class Scanner
 		case '>':
 			addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
 			break;
+		case '?':
+			addToken(TokenType.QUESTION_MARK);
+			break;
+		case ':':
+			addToken(TokenType.COLON);
+			break;
 		case '/':
 			if (match('/')) //single line coments
 			{
@@ -223,7 +210,7 @@ class Scanner
 					advance();
 
 				if (isAtEnd())
-					error(line, "Unterminated multi line comment");
+					reportError(line, "Unterminated multi line comment");
 
 				advance();
 				advance();
@@ -257,7 +244,7 @@ class Scanner
 			}
 			else
 			{
-				error(this.line, "Unexpected character");
+				reportError(this.line, "Unexpected character");
 			}
 		}
 	}
@@ -301,7 +288,7 @@ class Scanner
 				advance();
 		}
 
-		addToken(TokenType.NUMBER, Value(to!double(source[start .. current])));
+		addToken(TokenType.NUMBER, Variant(to!double(source[start .. current])));
 	}
 
 	//only consumes when the character is expected
@@ -340,15 +327,15 @@ class Scanner
 		}
 		if (isAtEnd())
 		{
-			error(line, "Unterminated string");
+			reportError(line, "Unterminated string");
 		}
 
 		//The closing ".
 		advance();
 
 		//Trim the surrounding quotes
-		string value = source[start + 1 .. current];
-		addToken(TokenType.STRING, Value(value));
+		string value = source[start + 1 .. current-1];
+		addToken(TokenType.STRING, Variant(value));
 	}
 
 }
