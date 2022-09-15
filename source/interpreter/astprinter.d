@@ -12,18 +12,36 @@ class AstPrinter : Visitor
 	Variant visitBinaryExpr(Binary expr)
 	{
 		return parenthesize(expr.operator.lexeme,
-                        expr.left, expr.right);
+			expr.left, expr.right);
 	}
 
-		public Variant visitAssignExpr(Assign expr)
+	public Variant visitLogicalExpr(Logical expr)
+	{
+		Object left = evaluate(expr.left);
+
+		if (expr.operator.type == TokenType.OR)
+		{
+			if (isTruthy(left))
+				return left;
+		}
+		else
+		{
+			if (!isTruthy(left))
+				return left;
+		}
+
+		return evaluate(expr.right);
+	}
+
+	public Variant visitAssignExpr(Assign expr)
 	{
 		return Variant();
 	}
 
 	Variant visitVariableExpr(Variable expr)
 	{
-		return Variant();	
-	
+		return Variant();
+
 	}
 
 	Variant visitGroupingExpr(Grouping expr)
@@ -35,8 +53,19 @@ class AstPrinter : Visitor
 	Variant visitLiteralExpr(Literal expr)
 	{
 
-		if (!expr.value.hasValue) return Variant(Variant("nil"));
-    	return expr.value;
+		if (!expr.value.hasValue)
+			return Variant(Variant("nil"));
+		return expr.value;
+	}
+
+	Variant visitTernaryExpr(Ternary ternary)
+	{
+		writeln("me here");
+		if(isTruthy(evaluate(ternary.condition)))
+		{
+			return evaluate(ternary.left);
+		}
+		return evaluate(ternary.right);
 	}
 
 	Variant visitUnaryExpr(Unary expr)
@@ -58,7 +87,7 @@ class AstPrinter : Visitor
 
 		builder ~= "(";
 		builder ~= name;
-		foreach (Expr expr ; exprs)
+		foreach (Expr expr; exprs)
 		{
 			builder ~= " ";
 			builder ~= to!string(expr.accept(this));
@@ -78,7 +107,7 @@ void printTest()
 			new Literal(Variant("nil"))),
 		new Token(TokenType.STAR, "*", Variant(null), 1),
 		new Grouping(
-				new Literal(Variant(45.67))));
+			new Literal(Variant(45.67))));
 	auto printer = new AstPrinter();
 	writeln(printer.print(expression));
 }

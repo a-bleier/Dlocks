@@ -10,9 +10,11 @@ class Expr
 interface Visitor 
 {
 	Variant visitAssignExpr(Assign expr);
+	Variant visitTernaryExpr(Ternary expr);
 	Variant visitBinaryExpr(Binary expr);
 	Variant visitGroupingExpr(Grouping expr);
 	Variant visitLiteralExpr(Literal expr);
+	Variant visitLogicalExpr(Logical expr);
 	Variant visitUnaryExpr(Unary expr);
 	Variant visitVariableExpr(Variable expr);
 }
@@ -30,6 +32,24 @@ class Assign : Expr
 	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitAssignExpr(this);
+	}
+}
+class Ternary : Expr
+{
+	this(Expr condition, Expr left, Expr right)
+	{
+		this.condition = condition;
+		this.left = left;
+		this.right = right;
+	}
+
+	Expr condition;
+	Expr left;
+	Expr right;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitTernaryExpr(this);
 	}
 }
 class Binary : Expr
@@ -76,6 +96,24 @@ class Literal : Expr
 	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitLiteralExpr(this);
+	}
+}
+class Logical : Expr
+{
+	this(Expr left, Token operator, Expr right)
+	{
+		this.left = left;
+		this.operator = operator;
+		this.right = right;
+	}
+
+	Expr left;
+	Token operator;
+	Expr right;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitLogicalExpr(this);
 	}
 }
 class Unary : Expr

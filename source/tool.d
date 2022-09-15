@@ -16,9 +16,11 @@ void main(string[] args)
 	defineAst(outputDir, "Expr",
 		[
 			"Assign   : Token name, Expr value",
+			"Ternary : Expr condition, Expr left, Expr right",
 			"Binary : Expr left, Token operator, Expr right",
 			"Grouping : Expr expression",
 			"Literal : Variant value",
+			"Logical  : Expr left, Token operator, Expr right",
 			"Unary : Token operator, Expr right",
 			"Variable : Token name"
 		],[]);
@@ -26,8 +28,10 @@ void main(string[] args)
 		[
 			"Block      : Stmt[] statements",
 			"Expression : Expr expression",
+			"If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
 			"Print      : Expr expression",
-			"Var : Token name, Expr initializer"
+			"Var : Token name, Expr initializer",
+			"While      : Expr condition, Stmt body"
 		],["import source.interpreter.expr;"]);
 }
 

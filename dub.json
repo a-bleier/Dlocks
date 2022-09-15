@@ -12,7 +12,7 @@
 			"name": "Interpreter",
 			"targetType": "executable",
 			"mainSourceFile": "source/app.d",
-			"excludedSourceFiles": [ "source/tool.d"],
+			"excludedSourceFiles": [ "source/tool.d", "source/interpreter/astprinter.d"],
 			"targetName": "interpreter"
 		},
 		{

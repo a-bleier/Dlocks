@@ -5,7 +5,6 @@ import std.conv;
 import core.stdc.stdlib;
 
 import source.interpreter.scanner;
-import source.interpreter.astprinter;
 import source.interpreter.parser;
 import source.interpreter.expr;
 import source.interpreter.interpreter;
@@ -34,7 +33,7 @@ int main(string[] args)
 
 void runFile(string path)
 {
-	Interpreter interpreter = new Interpreter();
+	Interpreter interpreter = new Interpreter(false);
 	File file = File(path, "r");
 	string line, src;
 	while ((line = file.readln()) != null)
@@ -51,7 +50,7 @@ void runFile(string path)
 
 void runPrompt()
 {
-	Interpreter interpreter = new Interpreter();
+	Interpreter interpreter = new Interpreter(true);
 	while (true)
 	{
 		write(">");
