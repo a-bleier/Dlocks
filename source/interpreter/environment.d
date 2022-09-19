@@ -39,15 +39,32 @@ class Environment
         auto v = name.lexeme in values;
         if (v !is null)
         {
-            if(!assigned[name.lexeme]) throw new RuntimeError(name, "Uninitialized variable '" ~ name.lexeme ~ "'.");
+            if (!assigned[name.lexeme])
+                throw new RuntimeError(name, "Uninitialized variable '" ~ name.lexeme ~ "'.");
 
             return *v;
         }
-        if(enclosing !is null) return enclosing.get(name);
+        if (enclosing !is null)
+            return enclosing.get(name);
         else
         {
             throw new RuntimeError(name, "Undefined variable '" ~ name.lexeme ~ "'.");
         }
+    }
+
+    Variant getAt(int dist, string name)
+    {
+        return ancestor(dist).values[name];
+    }
+
+    Environment ancestor(int distance)
+    {
+        auto env = this;
+        for (int i = 0; i < distance; i++)
+        {
+            env = env.enclosing;
+        }
+        return env;
     }
 
     void assign(Token name, Variant value)
@@ -60,7 +77,7 @@ class Environment
             return;
         }
 
-        if(enclosing !is null)
+        if (enclosing !is null)
         {
             enclosing.assign(name, value);
             return;
@@ -68,6 +85,11 @@ class Environment
 
         throw new RuntimeError(name,
             "Undefined variable '" ~ name.lexeme ~ "'.");
+    }
+
+    void assignAt(int dist, Token name, Variant value)
+    {
+        ancestor(dist).values[name.lexeme] = value;
     }
 
 }

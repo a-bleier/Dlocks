@@ -19,10 +19,11 @@ import source.lox;
 class Interpreter : source.interpreter.expr.Visitor, source.interpreter.stmt.Visitor
 {
 
-    private Environment globals = new Environment();
+    Environment globals = new Environment();
     private Environment environment;
     private bool replSupport;
     private bool breakFlag = false;
+    private int[Expr] locals;
 
     void test()
     {
@@ -33,35 +34,36 @@ class Interpreter : source.interpreter.expr.Visitor, source.interpreter.stmt.Vis
     {
         this.replSupport = replSupport;
         this.environment = globals;
-        // globals.define("clock", Variant(
-        //         new class LoxCallable
-        //     {
-        //         int arity()
-        //         {
-        //             return 0;}
+        globals.define("clock", Variant(
+                new class LoxCallable
+            {
+                int arity()
+                {
+                    return 0;}
 
-        //             //return time in sec
-        //             public Variant call(Interpreter interpreter, Variant[] args)
-        //             {
-        //                 return Variant(Clock.currTime().toTimeVal.tv_sec);}
-        //             }
+                    //return time in sec
+                    public Variant call(Interpreter interpreter, Variant[] args)
+                    {
+                        return Variant(to!double(Clock.currTime().toTimeVal.tv_sec));
+                    }
+                }
 
-        //             ));
+        ));
     }
 
     void interpret(Stmt[] statements)
     {
     try
-        //             {
-        //                 foreach (statement; statements)
-        //                 {
-        //                     execute(statement);
-        //                 }
-        //             }
-        //             catch (RuntimeError error)
-        //             {
-        //                 reportRuntimeError(error);
-        //             }
+        {
+            foreach (statement; statements)
+            {
+                execute(statement);
+            }
+        }
+        catch (RuntimeError error)
+        {
+            reportRuntimeError(error);
+        }
     }
 
     void executeBlock(Stmt[] statements, Environment environment)
@@ -89,6 +91,18 @@ class Interpreter : source.interpreter.expr.Visitor, source.interpreter.stmt.Vis
         s.accept(this);
     }
 
+    public void resolve(Expr expr, int depth) 
+    {
+        locals[expr] = depth;
+    }
+
+    public Variant visitFunctionStmt(Function stmt)
+    {
+        LoxFunction lfunction = new LoxFunction(stmt, environment);
+        environment.define(stmt.name.lexeme, Variant(lfunction));
+        return Variant();
+    }
+
     public Variant visitBlockStmt(Block stmt)
     {
         executeBlock(stmt.statements, new Environment(environment));
@@ -98,6 +112,15 @@ class Interpreter : source.interpreter.expr.Visitor, source.interpreter.stmt.Vis
     public Variant visitAssignExpr(Assign expr)
     {
         Variant value = evaluate(expr.value);
+        auto dist = expr in locals;
+        if (dist !is null)
+        {
+            environment.assignAt(*dist, expr.name, value);
+        }
+        else
+        {
+            globals.assign(expr.name, value);
+        }
         environment.assign(expr.name, value);
         return value;
     }
@@ -112,6 +135,15 @@ class Interpreter : source.interpreter.expr.Visitor, source.interpreter.stmt.Vis
         {
             execute(stmt.elseBranch);
         }
+        return Variant();
+    }
+
+    public Variant visitReturnStmt(Return stmt)
+    {
+        Variant value = Variant();
+        if(stmt.value !is null) value = evaluate(stmt.value);
+
+        throw new ReturnVal(value);
         return Variant();
     }
 
@@ -185,7 +217,20 @@ class Interpreter : source.interpreter.expr.Visitor, source.interpreter.stmt.Vis
 
     Variant visitVariableExpr(Variable expr)
     {
-        return environment.get(expr.name);
+        return lookUpVariable(expr.name, expr);
+    }
+
+    private Variant lookUpVariable(Token name, Expr expr)
+    {
+        auto dist = expr in locals;
+        if(dist !is null)
+        {
+            return environment.getAt(*dist, name.lexeme);
+        }
+        else
+        {
+            return globals.get(name);
+        }
     }
 
     Variant visitLiteralExpr(Literal expr)
@@ -233,7 +278,7 @@ class Interpreter : source.interpreter.expr.Visitor, source.interpreter.stmt.Vis
         }
 
         //is the callee callable ?
-        if (callee.convertsTo!(LoxCallable))
+        if (!callee.convertsTo!(LoxCallable))
             throw new RuntimeError(expr.paren, "Can only call functions and classes");
         LoxCallable loxFunction = callee.get!(LoxCallable);
 

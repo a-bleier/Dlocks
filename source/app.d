@@ -9,6 +9,7 @@ import source.interpreter.parser;
 import source.interpreter.expr;
 import source.interpreter.interpreter;
 import source.interpreter.stmt;
+import source.interpreter.resolver;
 
 bool hadError = false;
 bool hadRuntimeError = false;
@@ -71,6 +72,10 @@ void run(Interpreter interpreter, string source)
     Stmt[] statements = parser.parse();
 
     // Stop if there was a syntax error.
+    if (hadError)
+        return;
+    auto resolver = new Resolver(interpreter);
+    resolver.resolve(statements);
     if (hadError)
         return;
     // writeln(new AstPrinter().print(expression));

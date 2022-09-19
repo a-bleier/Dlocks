@@ -78,6 +78,8 @@ class Parser
     {
         try
         {
+            if (match(TokenType.FUN))
+                return functionStmt("function");
             if (match(TokenType.VAR))
                 return varDeclaration();
 
@@ -88,6 +90,33 @@ class Parser
             synchronize();
             return null;
         }
+    }
+
+    private Function functionStmt(string kind)
+    {
+        //IDENTIFIER token
+        Token name = consume(TokenType.IDENTIFIER, "Expect " ~ kind ~ " name.");
+        consume(TokenType.LEFT_PAREN, "Expect '(' after " ~ " name.");
+
+        //parse parameter list
+        Token[] parameters;
+        if(!check(TokenType.RIGHT_PAREN))
+        {
+            do
+            {
+                if(parameters.length >= 255)
+                {
+                    error(peek(), "Can't have more than 255 parameters.");
+                }
+                parameters ~= consume(TokenType.IDENTIFIER, "Expect parameter name.");
+            }while(match(TokenType.COMMA));
+        }
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after paramerts");
+        
+        //parse function body
+        consume(TokenType.LEFT_BRACE, "Expect '{' before " ~ kind ~ " body.");
+        Stmt[] stmtBody = block(); //block assumes a matched '{'
+        return new Function(name, parameters, stmtBody);
     }
 
     private Stmt varDeclaration()
@@ -110,6 +139,8 @@ class Parser
             return printStatement();
         if (match(TokenType.IF))
             return ifStatement();
+        if(match(TokenType.RETURN))
+            return returnStatement();
         if (match(TokenType.WHILE))
             return whileStatement();
         if (match(TokenType.FOR))
@@ -156,6 +187,19 @@ class Parser
         }
 
         return new If(condition, thenBranch, elseBranch);
+    }
+
+    private Stmt returnStatement()
+    {
+        Token keyword = previous();
+        Expr value = null;
+        if(!check(TokenType.SEMICOLON))
+        {
+            value = expression();
+        }
+
+        consume(TokenType.SEMICOLON, "Expect ';' after return value.");
+        return new Return(keyword, value);
     }
 
     private Stmt whileStatement()
@@ -242,12 +286,12 @@ class Parser
     {
         Expr expr = assignment();
 
-        while (match(TokenType.COMMA))
-        {
-            Token op = previous();
-            Expr right = expression();
-            expr = new Binary(expr, op, right);
-        }
+        /* while (match(TokenType.COMMA)) */
+        /* { */
+        /*     Token op = previous(); */
+        /*     Expr right = expression(); */
+        /*     expr = new Binary(expr, op, right); */
+        /* } */
         return expr;
     }
 
