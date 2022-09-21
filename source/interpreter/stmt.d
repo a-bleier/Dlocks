@@ -13,6 +13,7 @@ interface Visitor
 	Variant visitBlockStmt(Block stmt);
 	Variant visitExpressionStmt(Expression stmt);
 	Variant visitFunctionStmt(Function stmt);
+	Variant visitClassStmt(Class stmt);
 	Variant visitReturnStmt(Return stmt);
 	Variant visitIfStmt(If stmt);
 	Variant visitPrintStmt(Print stmt);
@@ -64,6 +65,24 @@ class Function : Stmt
 	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitFunctionStmt(this);
+	}
+}
+class Class : Stmt
+{
+	this(Token name, Variable superclass, Function[] methods)
+	{
+		this.name = name;
+		this.superclass = superclass;
+		this.methods = methods;
+	}
+
+	Token name;
+	Variable superclass;
+	Function[] methods;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitClassStmt(this);
 	}
 }
 class Return : Stmt

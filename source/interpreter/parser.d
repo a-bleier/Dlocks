@@ -38,10 +38,15 @@ class Parser
             Expr value = assignment();
 
             Variable var = cast(Variable) expr;
+            Get get = cast(Get) expr;
             if (var !is null)
             {
                 Token name = var.name;
                 return new Assign(name, value);
+            }
+            else if (get !is null)
+            {
+                return new Set(get.object, get.name, value);
             }
 
             error(equals, "Invalid assignment target.");
@@ -82,6 +87,8 @@ class Parser
                 return functionStmt("function");
             if (match(TokenType.VAR))
                 return varDeclaration();
+            if (match(TokenType.CLASS))
+                return classDeclaration();
 
             return statement();
         }
@@ -100,19 +107,20 @@ class Parser
 
         //parse parameter list
         Token[] parameters;
-        if(!check(TokenType.RIGHT_PAREN))
+        if (!check(TokenType.RIGHT_PAREN))
         {
             do
             {
-                if(parameters.length >= 255)
+                if (parameters.length >= 255)
                 {
                     error(peek(), "Can't have more than 255 parameters.");
                 }
                 parameters ~= consume(TokenType.IDENTIFIER, "Expect parameter name.");
-            }while(match(TokenType.COMMA));
+            }
+            while (match(TokenType.COMMA));
         }
         consume(TokenType.RIGHT_PAREN, "Expect ')' after paramerts");
-        
+
         //parse function body
         consume(TokenType.LEFT_BRACE, "Expect '{' before " ~ kind ~ " body.");
         Stmt[] stmtBody = block(); //block assumes a matched '{'
@@ -133,19 +141,42 @@ class Parser
         return new Var(name, initializer);
     }
 
+    private Stmt classDeclaration()
+    {
+        Token name = consume(TokenType.IDENTIFIER, "Expect class name.");
+        Variable superclass = null;
+        if (match(TokenType.LESS))
+        {
+            consume(TokenType.IDENTIFIER, "Expect superclass name.");
+            superclass = new Variable(previous());
+        }
+
+        consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+        Function[] methods;
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd())
+        {
+            methods ~= functionStmt("method");
+        }
+
+        consume(TokenType.RIGHT_BRACE, "Expect '}' after class body");
+
+        return new Class(name, superclass, methods);
+    }
+
     private Stmt statement()
     {
         if (match(TokenType.PRINT))
             return printStatement();
         if (match(TokenType.IF))
             return ifStatement();
-        if(match(TokenType.RETURN))
+        if (match(TokenType.RETURN))
             return returnStatement();
         if (match(TokenType.WHILE))
             return whileStatement();
         if (match(TokenType.FOR))
             return forStatement();
-        if(match(TokenType.BREAK))
+        if (match(TokenType.BREAK))
             return breakStatement();
         if (match(TokenType.LEFT_BRACE))
             return new Block(block());
@@ -193,7 +224,7 @@ class Parser
     {
         Token keyword = previous();
         Expr value = null;
-        if(!check(TokenType.SEMICOLON))
+        if (!check(TokenType.SEMICOLON))
         {
             value = expression();
         }
@@ -270,7 +301,8 @@ class Parser
 
     private Stmt breakStatement()
     {
-        if(nestedLoops == 0) throw error(tokens[current], "Illegal break");
+        if (nestedLoops == 0)
+            throw error(tokens[current], "Illegal break");
         consume(TokenType.SEMICOLON, "Expect ';' after expression.");
         return new Break();
     }
@@ -383,17 +415,24 @@ class Parser
     {
         Expr expr = primary();
 
-        while(true)
+        while (true)
         {
-            if(match(TokenType.LEFT_PAREN))
+            if (match(TokenType.LEFT_PAREN))
             {
                 expr = finishCall(expr);
+            }
+            else if (match(TokenType.DOT))
+            {
+                Token name = consume(TokenType.IDENTIFIER,
+                    "Expect property name after '.'.");
+                expr = new Get(expr, name);
             }
             else
             {
                 break;
             }
         }
+
         return expr;
     }
 
@@ -404,9 +443,11 @@ class Parser
         {
             do
             {
-                if(arguments.length >= 255) error(peek(), "Can't have more than 255 arguments");
+                if (arguments.length >= 255)
+                    error(peek(), "Can't have more than 255 arguments");
                 arguments ~= expression();
-            } while(match(TokenType.COMMA));
+            }
+            while (match(TokenType.COMMA));
         }
 
         Token paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments");
@@ -427,6 +468,18 @@ class Parser
         {
             return new Literal(previous().literal);
         }
+
+        if (match(TokenType.SUPER))
+        {
+            Token keyword = previous();
+            consume(TokenType.DOT, "Expect '.' after 'super'.");
+            Token method = consume(TokenType.IDENTIFIER,
+                "Expect superclass method name.");
+            return new Super(keyword, method);
+        }
+
+        if (match(TokenType.THIS))
+            return new ThisExpr(previous());
 
         if (match(TokenType.LEFT_PAREN))
         {

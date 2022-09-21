@@ -19,24 +19,29 @@ void main(string[] args)
             "Ternary : Expr condition, Expr left, Expr right",
             "Binary : Expr left, Token operator, Expr right",
             "Call     : Expr callee, Token paren, Expr[] arguments",
+            "Get      : Expr object, Token name",
+            "Set      : Expr object, Token name, Expr value",
+            "Super    : Token keyword, Token method",
+            "ThisExpr   : Token keyword",
             "Grouping : Expr expression",
             "Literal : Variant value",
             "Logical  : Expr left, Token operator, Expr right",
             "Unary : Token operator, Expr right",
             "Variable : Token name"
-        ],[]);
+        ], []);
     defineAst(outputDir, "Stmt",
         [
             "Block      : Stmt[] statements",
             "Expression : Expr expression",
             "Function   : Token name, Token[] params, Stmt[] body",
+            "Class      : Token name, Variable superclass, Function[] methods",
             "Return     : Token keyword, Expr value",
             "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
             "Print      : Expr expression",
             "Break : ",
             "Var : Token name, Expr initializer",
             "While      : Expr condition, Stmt body"
-        ],["import source.interpreter.expr;"]);
+        ], ["import source.interpreter.expr;"]);
 }
 
 void defineAst(string outputDir, string baseName, string[] types, string[] imports)
@@ -48,7 +53,7 @@ void defineAst(string outputDir, string baseName, string[] types, string[] impor
     file.writeln("import source.interpreter.parser;");
     file.writeln("import std.variant;");
 
-    foreach(imp ; imports)
+    foreach (imp; imports)
     {
         file.writeln(imp);
     }

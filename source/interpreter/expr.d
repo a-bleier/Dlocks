@@ -13,6 +13,10 @@ interface Visitor
 	Variant visitTernaryExpr(Ternary expr);
 	Variant visitBinaryExpr(Binary expr);
 	Variant visitCallExpr(Call expr);
+	Variant visitGetExpr(Get expr);
+	Variant visitSetExpr(Set expr);
+	Variant visitSuperExpr(Super expr);
+	Variant visitThisExprExpr(ThisExpr expr);
 	Variant visitGroupingExpr(Grouping expr);
 	Variant visitLiteralExpr(Literal expr);
 	Variant visitLogicalExpr(Logical expr);
@@ -87,6 +91,70 @@ class Call : Expr
 	override Variant accept(Visitor visitor)
 	{
 		return visitor.visitCallExpr(this);
+	}
+}
+class Get : Expr
+{
+	this(Expr object, Token name)
+	{
+		this.object = object;
+		this.name = name;
+	}
+
+	Expr object;
+	Token name;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitGetExpr(this);
+	}
+}
+class Set : Expr
+{
+	this(Expr object, Token name, Expr value)
+	{
+		this.object = object;
+		this.name = name;
+		this.value = value;
+	}
+
+	Expr object;
+	Token name;
+	Expr value;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitSetExpr(this);
+	}
+}
+class Super : Expr
+{
+	this(Token keyword, Token method)
+	{
+		this.keyword = keyword;
+		this.method = method;
+	}
+
+	Token keyword;
+	Token method;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitSuperExpr(this);
+	}
+}
+class ThisExpr : Expr
+{
+	this(Token keyword)
+	{
+		this.keyword = keyword;
+	}
+
+	Token keyword;
+
+	override Variant accept(Visitor visitor)
+	{
+		return visitor.visitThisExprExpr(this);
 	}
 }
 class Grouping : Expr

@@ -139,7 +139,6 @@ class Scanner
 
     private void addToken(TokenType type, Variant literal) //Produces a token of type type and value literal
     {
-        writeln(type);
         tokens ~= new Token(type, this.source[start .. current], literal, line);
     }
 
